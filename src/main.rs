@@ -1,6 +1,18 @@
 use bevy::{input::mouse::MouseWheel, math::ops::powf, prelude::*};
 
 #[derive(Component)]
+struct Speed(f32);
+
+#[derive(Component)]
+struct AnimationIndices {
+    first: usize,
+    last: usize,
+}
+
+#[derive(Component, Deref, DerefMut)]
+struct AnimationTimer(Timer);
+
+#[derive(Component)]
 struct Camera {
     speed: Speed,
 
@@ -19,59 +31,51 @@ impl Default for Camera {
     }
 }
 
-#[derive(Component)]
-struct Speed(f32);
+fn animate_sprite(
+    time: Res<Time>,
+    mut query: Query<(&AnimationIndices, &mut AnimationTimer, &mut Sprite)>,
+) {
+    for (indices, mut timer, mut sprite) in &mut query {
+        timer.tick(time.delta());
+
+        if timer.just_finished()
+            && let Some(atlas) = &mut sprite.texture_atlas
+        {
+            atlas.index = if atlas.index == indices.last {
+                indices.first
+            } else {
+                atlas.index + 1
+            };
+        }
+    }
+}
 
 fn spawn_camera(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    asset_server: Res<AssetServer>,
+    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     commands.spawn((Camera2d, Camera::default()));
 
-    // This is just temporary for testing
-    let shapes = [
-        meshes.add(Circle::new(50.0)),
-        meshes.add(CircularSector::new(50.0, 1.0)),
-        meshes.add(CircularSegment::new(50.0, 1.25)),
-        meshes.add(Ellipse::new(25.0, 50.0)),
-        meshes.add(Annulus::new(25.0, 50.0)),
-        meshes.add(Capsule2d::new(25.0, 50.0)),
-        meshes.add(Rhombus::new(75.0, 100.0)),
-        meshes.add(Rectangle::new(50.0, 100.0)),
-        meshes.add(RegularPolygon::new(50.0, 6)),
-        meshes.add(Triangle2d::new(
-            Vec2::Y * 50.0,
-            Vec2::new(-50.0, -50.0),
-            Vec2::new(50.0, -50.0),
-        )),
-        meshes.add(Segment2d::new(
-            Vec2::new(-50.0, 50.0),
-            Vec2::new(50.0, -50.0),
-        )),
-        meshes.add(Polyline2d::new(vec![
-            Vec2::new(-50.0, 50.0),
-            Vec2::new(0.0, -50.0),
-            Vec2::new(50.0, 50.0),
-        ])),
-    ];
-    let num_shapes = shapes.len();
+    // This is temporary to show the conveyor belt sprite is working
+    let texture = asset_server.load("basic_conveyor.png");
+    let layout = TextureAtlasLayout::from_grid(UVec2::splat(32), 5, 1, None, None);
+    let texture_atlas_layout = texture_atlas_layouts.add(layout);
 
-    for (i, shape) in shapes.into_iter().enumerate() {
-        // Distribute colors evenly across the rainbow.
-        let color = Color::hsl(360. * i as f32 / num_shapes as f32, 0.95, 0.7);
+    let animation_indices = AnimationIndices { first: 0, last: 4 };
 
-        commands.spawn((
-            Mesh2d(shape),
-            MeshMaterial2d(materials.add(color)),
-            Transform::from_xyz(
-                // Distribute shapes from -X_EXTENT/2 to +X_EXTENT/2.
-                -900.0 / 2. + i as f32 / (num_shapes - 1) as f32 * 900.0,
-                0.0,
-                0.0,
-            ),
-        ));
-    }
+    commands.spawn((
+        Sprite::from_atlas_image(
+            texture,
+            TextureAtlas {
+                layout: texture_atlas_layout,
+                index: animation_indices.first,
+            },
+        ),
+        Transform::from_scale(Vec3::splat(6.0)),
+        animation_indices,
+        AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
+    ));
 }
 
 fn camera_controls(
@@ -124,5 +128,6 @@ fn main() {
         )
         .add_systems(Startup, spawn_camera)
         .add_systems(Update, camera_controls)
+        .add_systems(Update, animate_sprite)
         .run();
 }
