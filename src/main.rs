@@ -1,16 +1,20 @@
-use bevy::prelude::*;
+use bevy::{input::mouse::MouseWheel, math::ops::powf, prelude::*};
 
 #[derive(Component)]
 struct Camera {
     speed: Speed,
-    zoom_speed: Speed,
+
+    max_zoom: f32,
+    min_zoom: f32,
 }
 
 impl Default for Camera {
     fn default() -> Self {
         Self {
             speed: Speed(300.0),
-            zoom_speed: Speed(15.0),
+
+            max_zoom: 300.0,
+            min_zoom: 10.0,
         }
     }
 }
@@ -70,12 +74,13 @@ fn spawn_camera(
     }
 }
 
-fn camera_wasd(
-    q_camera: Single<(&mut Camera, &mut Transform)>,
+fn camera_controls(
+    q_camera: Single<(&mut Camera, &mut Transform, &mut Projection)>,
     input: Res<ButtonInput<KeyCode>>,
+    mut wheel_msg: MessageReader<MouseWheel>,
     time: Res<Time<Fixed>>,
 ) {
-    let (mut camera, mut transform) = q_camera.into_inner();
+    let (mut camera, mut transform, mut projection) = q_camera.into_inner();
 
     let speed = camera.speed.0 * time.delta_secs();
 
@@ -90,6 +95,17 @@ fn camera_wasd(
     }
     if input.pressed(KeyCode::KeyD) {
         transform.translation.x += speed;
+    }
+
+    if let Projection::Orthographic(projection2d) = &mut *projection {
+        for msg in wheel_msg.read() {
+            if msg.y > 0.0 {
+                projection2d.scale *= powf(4.0f32, time.delta_secs());
+            }
+            if msg.y < 0.0 {
+                projection2d.scale *= powf(0.25f32, time.delta_secs());
+            }
+        }
     }
 }
 
@@ -107,6 +123,6 @@ fn main() {
                 .set(ImagePlugin::default_nearest()),
         )
         .add_systems(Startup, spawn_camera)
-        .add_systems(Update, camera_wasd)
+        .add_systems(Update, camera_controls)
         .run();
 }
