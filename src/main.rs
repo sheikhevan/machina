@@ -1,4 +1,8 @@
+use crate::tiles::picking::TilemapBackend;
 use bevy::{input::mouse::MouseWheel, math::ops::powf, prelude::*};
+use bevy_ecs_tilemap::TilemapPlugin;
+
+mod tiles;
 
 #[derive(Component)]
 struct Speed(f32);
@@ -25,8 +29,8 @@ impl Default for Camera {
         Self {
             speed: Speed(300.0),
 
-            max_zoom: 300.0,
-            min_zoom: 10.0,
+            max_zoom: 15.0,
+            min_zoom: 0.2,
         }
     }
 }
@@ -84,7 +88,7 @@ fn camera_controls(
     mut wheel_msg: MessageReader<MouseWheel>,
     time: Res<Time<Fixed>>,
 ) {
-    let (mut camera, mut transform, mut projection) = q_camera.into_inner();
+    let (camera, mut transform, mut projection) = q_camera.into_inner();
 
     let speed = camera.speed.0 * time.delta_secs();
 
@@ -110,6 +114,8 @@ fn camera_controls(
                 projection2d.scale *= powf(0.25f32, time.delta_secs());
             }
         }
+
+        projection2d.scale = projection2d.scale.clamp(camera.min_zoom, camera.max_zoom);
     }
 }
 
@@ -126,8 +132,10 @@ fn main() {
                 })
                 .set(ImagePlugin::default_nearest()),
         )
+        .add_plugins((TilemapPlugin, TilemapBackend))
         .add_systems(Startup, spawn_camera)
         .add_systems(Update, camera_controls)
         .add_systems(Update, animate_sprite)
+        .add_systems(Startup, tiles::tiles_startup)
         .run();
 }
