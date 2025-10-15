@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
-use rand::Rng;
 
 pub mod picking;
 
@@ -22,20 +21,15 @@ pub fn tiles_startup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // per layer, each with their own `TileStorage` component.
     let mut tile_storage = TileStorage::empty(map_size);
 
-    let mut rng = rand::rng();
-
     // Spawn the elements of the tilemap.
     for x in 0..map_size.x {
         for y in 0..map_size.y {
             let tile_pos = TilePos { x, y };
 
-            let texture_index = rng.random_range(0..4);
-
             let tile_entity = commands
                 .spawn(TileBundle {
                     position: tile_pos,
                     tilemap_id: TilemapId(tilemap_entity),
-                    texture_index: TileTextureIndex(texture_index),
                     ..Default::default()
                 })
                 .id();

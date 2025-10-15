@@ -107,10 +107,10 @@ fn highlight_hovered_tile(
     for (mut color, interaction) in q_tiles.iter_mut() {
         match *interaction {
             PickingInteraction::Hovered => {
-                *color = TileColor(Color::srgba(1.0, 1.0, 0.5, 1.0)); // Yellow when hovered
+                *color = TileColor(Color::srgba_u8(190, 220, 127, 255)); // #BEDC7F when hovered
             }
             PickingInteraction::Pressed => {
-                *color = TileColor(Color::srgba(0.8, 0.8, 0.8, 1.0)); // Grey when pressed
+                *color = TileColor(Color::srgba_u8(17, 35, 24, 255)); // #112318 when clicked
             }
             PickingInteraction::None => {
                 *color = TileColor(Color::WHITE);
