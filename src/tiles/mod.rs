@@ -5,7 +5,7 @@ use rand::Rng;
 pub mod picking;
 
 pub fn tiles_startup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let texture_handle: Handle<Image> = asset_server.load("grass.png");
+    let texture_handle: Handle<Image> = asset_server.load("textures/grass.png");
 
     let map_size = TilemapSize { x: 32, y: 32 }; // How big you want the map to be in tiles
 

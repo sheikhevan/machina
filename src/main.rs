@@ -29,8 +29,8 @@ impl Default for Camera {
         Self {
             speed: Speed(300.0),
 
-            max_zoom: 15.0,
-            min_zoom: 0.2,
+            max_zoom: 4.0,
+            min_zoom: 0.3,
         }
     }
 }
@@ -62,7 +62,7 @@ fn spawn_camera(
     commands.spawn((Camera2d, Camera::default()));
 
     // This is temporary to show the conveyor belt sprite is working
-    let texture = asset_server.load("basic_conveyor.png");
+    let texture = asset_server.load("textures/basic_conveyor.png");
     let layout = TextureAtlasLayout::from_grid(UVec2::splat(32), 5, 1, None, None);
     let texture_atlas_layout = texture_atlas_layouts.add(layout);
 
