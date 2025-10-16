@@ -1,4 +1,3 @@
-use bevy::picking::events::{Click, Out, Over, Pointer};
 use bevy::picking::hover::PickingInteraction;
 use bevy::{
     picking::{
@@ -14,9 +13,9 @@ use bevy_ecs_tilemap::prelude::*;
 // The code on this page was adapted from dpogorzelski on GitHub.
 // Original code can be found at: https://github.com/StarArawn/bevy_ecs_tilemap/issues/572
 
-pub struct TilemapBackend;
+pub struct TilemapBackendPlugin;
 
-impl Plugin for TilemapBackend {
+impl Plugin for TilemapBackendPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(PreUpdate, tile_picking.in_set(PickingSystems::Backend))
             .add_systems(Update, highlight_hovered_tile);

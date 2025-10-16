@@ -1,8 +1,12 @@
-use crate::tiles::picking::TilemapBackend;
+use crate::tiles::picking::TilemapBackendPlugin;
+use crate::ui::debug::DebugEguiPlugin;
 use bevy::{input::mouse::MouseWheel, math::ops::powf, prelude::*};
 use bevy_ecs_tilemap::TilemapPlugin;
+use bevy_egui::EguiPlugin;
 
+mod buildings;
 mod tiles;
+mod ui;
 
 #[derive(Component)]
 struct Speed(f32);
@@ -33,6 +37,28 @@ impl Default for Camera {
             min_zoom: 0.3,
         }
     }
+}
+
+fn main() {
+    App::new()
+        .add_plugins(
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: String::from("Machina 2D"),
+                        ..Default::default()
+                    }),
+                    ..default()
+                })
+                .set(ImagePlugin::default_nearest()),
+        )
+        .add_plugins((TilemapPlugin, TilemapBackendPlugin))
+        .add_plugins((EguiPlugin::default(), DebugEguiPlugin))
+        .add_systems(Startup, spawn_camera)
+        .add_systems(Update, camera_controls)
+        .add_systems(Update, animate_sprite)
+        .add_systems(Startup, tiles::tiles_startup)
+        .run();
 }
 
 fn animate_sprite(
@@ -117,25 +143,4 @@ fn camera_controls(
 
         projection2d.scale = projection2d.scale.clamp(camera.min_zoom, camera.max_zoom);
     }
-}
-
-fn main() {
-    App::new()
-        .add_plugins(
-            DefaultPlugins
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        title: String::from("Machina 2D"),
-                        ..Default::default()
-                    }),
-                    ..default()
-                })
-                .set(ImagePlugin::default_nearest()),
-        )
-        .add_plugins((TilemapPlugin, TilemapBackend))
-        .add_systems(Startup, spawn_camera)
-        .add_systems(Update, camera_controls)
-        .add_systems(Update, animate_sprite)
-        .add_systems(Startup, tiles::tiles_startup)
-        .run();
 }
