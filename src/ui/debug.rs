@@ -27,6 +27,7 @@ fn debug_egui_menu(
     mut contexts: EguiContexts,
     building_images: Res<BuildingImages>,
     time: Res<Time>,
+    mut spawn_conveyor_writer: MessageWriter<basic_conveyor::SpawnConveyorMsg>,
 ) -> Result {
     let fps = 10.0;
 
@@ -61,7 +62,7 @@ fn debug_egui_menu(
             ui.add(image);
 
             if ui.button("Spawn").clicked() {
-                basic_conveyor::spawn();
+                spawn_conveyor_writer.write(basic_conveyor::SpawnConveyorMsg);
             }
         })
     });
