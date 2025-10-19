@@ -1,4 +1,4 @@
-use crate::buildings::helpers::snap_to_grid;
+use crate::buildings::helpers::{BuildingRotation, snap_to_grid};
 use bevy::prelude::*;
 
 pub struct BasicConveyorPlugin;
@@ -14,6 +14,7 @@ impl Plugin for BasicConveyorPlugin {
                 (
                     start_basic_conveyor_preview,
                     update_basic_conveyor_preview,
+                    rotate_basic_conveyor_preview,
                     place_basic_conveyor,
                     animate_basic_conveyors,
                 )
@@ -35,6 +36,7 @@ pub struct BasicConveyorAsset {
 pub struct BasicConveyorState {
     pub placing: bool,
     pub preview: Option<Entity>,
+    pub rotation: BuildingRotation,
 }
 
 #[derive(Resource)]
@@ -89,11 +91,13 @@ fn start_basic_conveyor_preview(
 ) {
     for _ in msg_reader.read() {
         state.placing = true;
+        state.rotation = BuildingRotation::default(); // Reset thee rotation
 
         let preview = commands
             .spawn((
                 BasicConveyorPreview,
                 BasicConveyor,
+                BuildingRotation::default(),
                 Sprite {
                     image: conveyor_asset.texture.clone(),
                     texture_atlas: Some(TextureAtlas {
@@ -148,12 +152,35 @@ fn update_basic_conveyor_preview(
     }
 }
 
+fn rotate_basic_conveyor_preview(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut state: ResMut<BasicConveyorState>,
+    mut q_preview: Query<(&mut BuildingRotation, &mut Transform), With<BasicConveyorPreview>>,
+) {
+    if !state.placing {
+        return;
+    }
+
+    if keyboard.just_pressed(KeyCode::KeyR) {
+        // Rotate the state
+        state.rotation.rotate_clockwise();
+
+        // Rotate the preview
+        if let Some(preview) = state.preview {
+            if let Ok((mut rotation, mut transform)) = q_preview.get_mut(preview) {
+                rotation.rotate_clockwise();
+                transform.rotation = Quat::from_rotation_z(rotation.to_radians());
+            }
+        }
+    }
+}
+
 fn place_basic_conveyor(
     mut commands: Commands,
     mouse_button: Res<ButtonInput<MouseButton>>,
     mut state: ResMut<BasicConveyorState>,
     conveyor_asset: Res<BasicConveyorAsset>,
-    q_preview: Query<&Transform, With<BasicConveyorPreview>>,
+    q_preview: Query<(&Transform, &BuildingRotation), With<BasicConveyorPreview>>,
 ) {
     if !state.placing {
         return;
@@ -162,10 +189,11 @@ fn place_basic_conveyor(
     if mouse_button.just_pressed(MouseButton::Left) {
         // Get the preview position
         if let Some(preview) = state.preview {
-            if let Ok(preview_transform) = q_preview.get(preview) {
+            if let Ok((preview_transform, rotation)) = q_preview.get(preview) {
                 // Now we spawn the basic conveyor
                 commands.spawn((
                     BasicConveyor,
+                    *rotation,
                     Sprite {
                         image: conveyor_asset.texture.clone(),
                         texture_atlas: Some(TextureAtlas {
