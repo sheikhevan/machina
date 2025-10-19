@@ -1,5 +1,5 @@
+use crate::buildings::helpers::snap_to_grid;
 use bevy::prelude::*;
-use bevy_ecs_tilemap::prelude::*;
 
 pub struct BasicConveyorPlugin;
 
@@ -128,10 +128,12 @@ fn update_basic_conveyor_preview(
         return;
     };
 
+    let snapped_pos = snap_to_grid(world_pos, 32.0);
+
     // Update the preview position
     if let Some(preview) = state.preview {
         if let Ok(mut transform) = q_preview.get_mut(preview) {
-            transform.translation = world_pos.extend(10.0);
+            transform.translation = snapped_pos.extend(10.0);
         }
     }
 }
