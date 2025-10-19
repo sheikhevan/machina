@@ -7,6 +7,7 @@ impl Plugin for BasicConveyorPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<SpawnConveyorMsg>()
             .init_resource::<BasicConveyorState>()
+            .init_resource::<BasicConveyorAnimTimer>()
             .add_systems(Startup, setup_basic_conveyor)
             .add_systems(
                 Update,
@@ -36,11 +37,23 @@ pub struct BasicConveyorState {
     pub preview: Option<Entity>,
 }
 
-#[derive(Component)]
-pub struct BasicConveyor {
-    animation_timer: Timer,
+#[derive(Resource)]
+struct BasicConveyorAnimTimer {
+    timer: Timer,
     current_frame: usize,
 }
+
+impl Default for BasicConveyorAnimTimer {
+    fn default() -> Self {
+        Self {
+            timer: Timer::from_seconds(0.1, TimerMode::Repeating),
+            current_frame: 0,
+        }
+    }
+}
+
+#[derive(Component)]
+pub struct BasicConveyor;
 
 #[derive(Component)]
 pub struct BasicConveyorPreview;
@@ -80,10 +93,7 @@ fn start_basic_conveyor_preview(
         let preview = commands
             .spawn((
                 BasicConveyorPreview,
-                BasicConveyor {
-                    animation_timer: Timer::from_seconds(0.1, TimerMode::Repeating),
-                    current_frame: 0,
-                },
+                BasicConveyor,
                 Sprite {
                     image: conveyor_asset.texture.clone(),
                     texture_atlas: Some(TextureAtlas {
@@ -155,10 +165,7 @@ fn place_basic_conveyor(
             if let Ok(preview_transform) = q_preview.get(preview) {
                 // Now we spawn the basic conveyor
                 commands.spawn((
-                    BasicConveyor {
-                        animation_timer: Timer::from_seconds(0.1, TimerMode::Repeating),
-                        current_frame: 0,
-                    },
+                    BasicConveyor,
                     Sprite {
                         image: conveyor_asset.texture.clone(),
                         texture_atlas: Some(TextureAtlas {
@@ -183,15 +190,17 @@ fn place_basic_conveyor(
 
 fn animate_basic_conveyors(
     time: Res<Time>,
-    mut q_sprite: Query<(&mut BasicConveyor, &mut Sprite)>,
+    mut q_sprite: Query<&mut Sprite, With<BasicConveyor>>,
+    mut anim_timer: ResMut<BasicConveyorAnimTimer>,
 ) {
-    for (mut conveyor, mut sprite) in q_sprite.iter_mut() {
-        conveyor.animation_timer.tick(time.delta());
+    anim_timer.timer.tick(time.delta());
 
-        if conveyor.animation_timer.just_finished() {
-            conveyor.current_frame = (conveyor.current_frame + 1) % 5;
+    if anim_timer.timer.just_finished() {
+        anim_timer.current_frame = (anim_timer.current_frame + 1) % 5;
+
+        for mut sprite in q_sprite.iter_mut() {
             if let Some(ref mut atlas) = sprite.texture_atlas {
-                atlas.index = conveyor.current_frame;
+                atlas.index = anim_timer.current_frame;
             }
         }
     }
