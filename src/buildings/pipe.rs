@@ -230,27 +230,46 @@ fn update_pipe_connections(
         let has_vertical = has_above || has_below;
         let has_horizontal = has_left || has_right;
 
-        let (texture_index, rotation_angle) = if has_left && has_right && has_vertical {
-            // T-junction pipe
-            (2, 0.0)
-        } else if has_vertical && has_horizontal {
-            // Corner pipe
-            let angle = if has_left && has_below {
-                std::f32::consts::FRAC_PI_2 // 90°
-            } else if has_right && has_below {
-                std::f32::consts::PI // 180°
-            } else if has_right && has_above {
-                -std::f32::consts::FRAC_PI_2 // 270°
-            } else if has_left && has_above {
-                0.0 // 0°
+        let vertical_neighbor_is_vertical = if has_above {
+            if let Some((neighbor_rotation, _)) = pipe_positions.get(&(*x, y + 1)) {
+                neighbor_rotation.to_radians().abs() % std::f32::consts::PI
+                    > std::f32::consts::FRAC_PI_4
             } else {
-                0.0
-            };
-            (1, angle)
+                false
+            }
+        } else if has_below {
+            if let Some((neighbor_rotation, _)) = pipe_positions.get(&(*x, y - 1)) {
+                neighbor_rotation.to_radians().abs() % std::f32::consts::PI
+                    > std::f32::consts::FRAC_PI_4
+            } else {
+                false
+            }
         } else {
-            // Straight pipe
-            (0, rotation.to_radians())
+            false
         };
+
+        let (texture_index, rotation_angle) =
+            if has_left && has_right && has_vertical && vertical_neighbor_is_vertical {
+                // T-junction pipe
+                (2, 0.0)
+            } else if has_vertical && has_horizontal {
+                // Corner pipe
+                let angle = if has_left && has_below {
+                    std::f32::consts::FRAC_PI_2 // 90°
+                } else if has_right && has_below {
+                    std::f32::consts::PI // 180°
+                } else if has_right && has_above {
+                    -std::f32::consts::FRAC_PI_2 // 270°
+                } else if has_left && has_above {
+                    0.0 // 0°
+                } else {
+                    0.0
+                };
+                (1, angle)
+            } else {
+                // Straight pipe
+                (0, rotation.to_radians())
+            };
         // Finally, update the sprite's texture index
         if let Some((mut transform, mut sprite, _)) = q_pipes.iter_mut().nth(*index) {
             if let Some(ref mut atlas) = sprite.texture_atlas {
