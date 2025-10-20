@@ -1,22 +1,20 @@
 use crate::buildings::helpers::{BuildingRotation, snap_to_grid};
 use bevy::prelude::*;
 
-pub struct BasicConveyorPlugin;
+pub struct PipePlugin;
 
-impl Plugin for BasicConveyorPlugin {
+impl Plugin for PipePlugin {
     fn build(&self, app: &mut App) {
-        app.add_message::<SpawnConveyorMsg>()
-            .init_resource::<BasicConveyorState>()
-            .init_resource::<BasicConveyorAnimTimer>()
-            .add_systems(Startup, setup_basic_conveyor)
+        app.add_message::<SpawnPipeMsg>()
+            .init_resource::<PipeState>()
+            .add_systems(Startup, setup_pipe)
             .add_systems(
                 Update,
                 (
-                    start_basic_conveyor_preview,
-                    update_basic_conveyor_preview,
-                    rotate_basic_conveyor_preview,
-                    place_basic_conveyor,
-                    animate_basic_conveyors,
+                    start_pipe_preview,
+                    update_pipe_preview,
+                    rotate_pipe_preview,
+                    place_pipe,
                 )
                     .chain(),
             );
@@ -24,70 +22,55 @@ impl Plugin for BasicConveyorPlugin {
 }
 
 #[derive(Message)]
-pub struct SpawnConveyorMsg;
+pub struct SpawnPipeMsg;
 
 #[derive(Resource)]
-pub struct BasicConveyorAsset {
+pub struct PipeAsset {
     pub texture: Handle<Image>,
     pub atlas_layout: Handle<TextureAtlasLayout>,
 }
 
 #[derive(Resource, Default)]
-pub struct BasicConveyorState {
+pub struct PipeState {
     pub placing: bool,
     pub preview: Option<Entity>,
     pub rotation: BuildingRotation,
 }
 
-#[derive(Resource)]
-struct BasicConveyorAnimTimer {
-    timer: Timer,
-    current_frame: usize,
-}
-
-impl Default for BasicConveyorAnimTimer {
-    fn default() -> Self {
-        Self {
-            timer: Timer::from_seconds(0.1, TimerMode::Repeating),
-            current_frame: 0,
-        }
-    }
-}
+#[derive(Component)]
+pub struct Pipe;
 
 #[derive(Component)]
-pub struct BasicConveyor;
+pub struct PipePreview;
 
-#[derive(Component)]
-pub struct BasicConveyorPreview;
-
-fn setup_basic_conveyor(
+fn setup_pipe(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    let texture = asset_server.load("textures/basic_conveyor.png");
+    let texture = asset_server.load("textures/pipe.png");
 
-    // Create texture atlas layout for 160x32 spritesheet with 5 frames of 32x32
+    // Create texture atlas layout for 32x32 spritesheet with 1 frame of 32x32
     let layout = TextureAtlasLayout::from_grid(
         UVec2::new(32, 32), // Size of each frame
-        5,                  // Number of columns
+        1,                  // Number of columns
         1,                  // Number of rows
         None,
         None,
     );
     let atlas_layout = texture_atlases.add(layout);
 
-    commands.insert_resource(BasicConveyorAsset {
+    commands.insert_resource(PipeAsset {
         texture,
         atlas_layout,
     });
 }
 
-fn start_basic_conveyor_preview(
+fn start_pipe_preview(
     mut commands: Commands,
-    mut msg_reader: MessageReader<SpawnConveyorMsg>,
-    mut state: ResMut<BasicConveyorState>,
-    conveyor_asset: Res<BasicConveyorAsset>,
+    mut msg_reader: MessageReader<SpawnPipeMsg>,
+    mut state: ResMut<PipeState>,
+    pipe_asset: Res<PipeAsset>,
 ) {
     for _ in msg_reader.read() {
         state.placing = true;
@@ -95,13 +78,13 @@ fn start_basic_conveyor_preview(
 
         let preview = commands
             .spawn((
-                BasicConveyorPreview,
-                BasicConveyor,
+                PipePreview,
+                Pipe,
                 BuildingRotation::default(),
                 Sprite {
-                    image: conveyor_asset.texture.clone(),
+                    image: pipe_asset.texture.clone(),
                     texture_atlas: Some(TextureAtlas {
-                        layout: conveyor_asset.atlas_layout.clone(),
+                        layout: pipe_asset.atlas_layout.clone(),
                         index: 0,
                     }),
                     color: Color::srgba(1.0, 1.0, 1.0, 0.7), // Last value for preview opacity
@@ -115,11 +98,11 @@ fn start_basic_conveyor_preview(
     }
 }
 
-fn update_basic_conveyor_preview(
-    state: Res<BasicConveyorState>,
+fn update_pipe_preview(
+    state: Res<PipeState>,
     q_windows: Query<&Window>,
     q_camera: Query<(&Camera, &GlobalTransform)>,
-    mut q_preview: Query<&mut Transform, With<BasicConveyorPreview>>,
+    mut q_preview: Query<&mut Transform, With<PipePreview>>,
 ) {
     if !state.placing {
         return;
@@ -152,10 +135,10 @@ fn update_basic_conveyor_preview(
     }
 }
 
-fn rotate_basic_conveyor_preview(
+fn rotate_pipe_preview(
     keyboard: Res<ButtonInput<KeyCode>>,
-    mut state: ResMut<BasicConveyorState>,
-    mut q_preview: Query<(&mut BuildingRotation, &mut Transform), With<BasicConveyorPreview>>,
+    mut state: ResMut<PipeState>,
+    mut q_preview: Query<(&mut BuildingRotation, &mut Transform), With<PipePreview>>,
 ) {
     if !state.placing {
         return;
@@ -175,12 +158,12 @@ fn rotate_basic_conveyor_preview(
     }
 }
 
-fn place_basic_conveyor(
+fn place_pipe(
     mut commands: Commands,
     mouse_button: Res<ButtonInput<MouseButton>>,
-    mut state: ResMut<BasicConveyorState>,
-    conveyor_asset: Res<BasicConveyorAsset>,
-    q_preview: Query<(&Transform, &BuildingRotation), With<BasicConveyorPreview>>,
+    mut state: ResMut<PipeState>,
+    pipe_asset: Res<PipeAsset>,
+    q_preview: Query<(&Transform, &BuildingRotation), With<PipePreview>>,
 ) {
     if !state.placing {
         return;
@@ -192,12 +175,12 @@ fn place_basic_conveyor(
             if let Ok((preview_transform, rotation)) = q_preview.get(preview) {
                 // Now we spawn the basic conveyor
                 commands.spawn((
-                    BasicConveyor,
+                    Pipe,
                     *rotation,
                     Sprite {
-                        image: conveyor_asset.texture.clone(),
+                        image: pipe_asset.texture.clone(),
                         texture_atlas: Some(TextureAtlas {
-                            layout: conveyor_asset.atlas_layout.clone(),
+                            layout: pipe_asset.atlas_layout.clone(),
                             index: 0,
                         }),
                         ..default()
@@ -213,23 +196,5 @@ fn place_basic_conveyor(
         // Change state to exit placement mode
         state.placing = false;
         state.preview = None;
-    }
-}
-
-fn animate_basic_conveyors(
-    time: Res<Time>,
-    mut q_sprite: Query<&mut Sprite, With<BasicConveyor>>,
-    mut anim_timer: ResMut<BasicConveyorAnimTimer>,
-) {
-    anim_timer.timer.tick(time.delta());
-
-    if anim_timer.timer.just_finished() {
-        anim_timer.current_frame = (anim_timer.current_frame + 1) % 5;
-
-        for mut sprite in q_sprite.iter_mut() {
-            if let Some(ref mut atlas) = sprite.texture_atlas {
-                atlas.index = anim_timer.current_frame;
-            }
-        }
     }
 }

@@ -1,5 +1,5 @@
-use crate::buildings::basic_conveyor::BasicConveyorPlugin;
 use crate::buildings::oil_extractor::OilExtractorPlugin;
+use crate::buildings::pipe::PipePlugin;
 use crate::tiles::picking::TilemapBackendPlugin;
 use crate::ui::debug::DebugEguiPlugin;
 use bevy::{input::mouse::MouseWheel, math::ops::powf, prelude::*};
@@ -56,7 +56,7 @@ fn main() {
         )
         .add_plugins((TilemapPlugin, TilemapBackendPlugin))
         .add_plugins((EguiPlugin::default(), DebugEguiPlugin))
-        .add_plugins((BasicConveyorPlugin, OilExtractorPlugin))
+        .add_plugins((PipePlugin, OilExtractorPlugin))
         .add_systems(Startup, spawn_camera)
         .add_systems(Update, camera_controls)
         .add_systems(Update, animate_sprite)
