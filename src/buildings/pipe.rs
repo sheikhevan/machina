@@ -203,7 +203,7 @@ fn place_pipe(
 
 fn update_pipe_connections(
     mut q_pipes: Query<
-        (&Transform, &mut Sprite, &BuildingRotation),
+        (&mut Transform, &mut Sprite, &BuildingRotation),
         (With<Pipe>, Without<PipePreview>),
     >,
 ) {
@@ -218,7 +218,7 @@ fn update_pipe_connections(
     }
 
     // Now, we check each pipe and determine its texture index
-    for (grid_pos, _rotation, index) in pipe_data.iter() {
+    for (grid_pos, rotation, index) in pipe_data.iter() {
         let (x, y) = grid_pos;
 
         // Check all 4 directions for neighboring pipes
@@ -230,22 +230,33 @@ fn update_pipe_connections(
         let has_vertical = has_above || has_below;
         let has_horizontal = has_left || has_right;
 
-        let texture_index = if has_left && has_right && has_vertical {
-            // Has connections both vertically AND horizontally = T-junction (index 2)
-            2
+        let (texture_index, rotation_angle) = if has_left && has_right && has_vertical {
+            // T-junction pipe
+            (2, 0.0)
         } else if has_vertical && has_horizontal {
-            // Only vertical connections, no horizontal = corner pipe (index 1)
-            1
+            // Corner pipe
+            let angle = if has_left && has_below {
+                std::f32::consts::FRAC_PI_2 // 90°
+            } else if has_right && has_below {
+                std::f32::consts::PI // 180°
+            } else if has_right && has_above {
+                -std::f32::consts::FRAC_PI_2 // 270°
+            } else if has_left && has_above {
+                0.0 // 0°
+            } else {
+                0.0
+            };
+            (1, angle)
         } else {
-            // Only horizontal connections or no connections = straight pipe (index 0)
-            0
+            // Straight pipe
+            (0, rotation.to_radians())
         };
-
         // Finally, update the sprite's texture index
-        if let Some((_, mut sprite, _)) = q_pipes.iter_mut().nth(*index) {
+        if let Some((mut transform, mut sprite, _)) = q_pipes.iter_mut().nth(*index) {
             if let Some(ref mut atlas) = sprite.texture_atlas {
                 atlas.index = texture_index;
             }
+            transform.rotation = Quat::from_rotation_z(rotation_angle);
         }
     }
 }
