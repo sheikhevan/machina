@@ -230,10 +230,10 @@ fn update_pipe_connections(
         let has_vertical = has_above || has_below;
         let has_horizontal = has_left || has_right;
 
-        let texture_index = if has_vertical && has_horizontal {
+        let texture_index = if has_left && has_right && has_vertical {
             // Has connections both vertically AND horizontally = T-junction (index 2)
             2
-        } else if has_vertical && !has_horizontal {
+        } else if has_vertical && has_horizontal {
             // Only vertical connections, no horizontal = corner pipe (index 1)
             1
         } else {
