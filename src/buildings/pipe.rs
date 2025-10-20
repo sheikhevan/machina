@@ -1,5 +1,6 @@
-use crate::buildings::helpers::{BuildingRotation, snap_to_grid};
+use crate::buildings::helpers::{BuildingRotation, snap_to_grid, world_to_grid};
 use bevy::prelude::*;
+use std::collections::HashMap;
 
 pub struct PipePlugin;
 
@@ -15,6 +16,7 @@ impl Plugin for PipePlugin {
                     update_pipe_preview,
                     rotate_pipe_preview,
                     place_pipe,
+                    update_pipe_connections,
                 )
                     .chain(),
             );
@@ -50,10 +52,10 @@ fn setup_pipe(
 ) {
     let texture = asset_server.load("textures/pipe.png");
 
-    // Create texture atlas layout for 32x32 spritesheet with 1 frame of 32x32
+    // Create texture atlas layout for 96x32 spritesheet with 3 frames of 32x32
     let layout = TextureAtlasLayout::from_grid(
         UVec2::new(32, 32), // Size of each frame
-        1,                  // Number of columns
+        3,                  // Number of columns
         1,                  // Number of rows
         None,
         None,
@@ -196,5 +198,54 @@ fn place_pipe(
         // Change state to exit placement mode
         state.placing = false;
         state.preview = None;
+    }
+}
+
+fn update_pipe_connections(
+    mut q_pipes: Query<
+        (&Transform, &mut Sprite, &BuildingRotation),
+        (With<Pipe>, Without<PipePreview>),
+    >,
+) {
+    // We first build a map of grid positions to check for neighbors
+    let mut pipe_positions: HashMap<(i32, i32), (BuildingRotation, usize)> = HashMap::new();
+    let mut pipe_data: Vec<((i32, i32), BuildingRotation, usize)> = Vec::new();
+
+    for (i, (transform, _, rotation)) in q_pipes.iter().enumerate() {
+        let grid_pos = world_to_grid(transform.translation);
+        pipe_positions.insert(grid_pos, (*rotation, i));
+        pipe_data.push((grid_pos, *rotation, i));
+    }
+
+    // Now, we check each pipe and determine its texture index
+    for (grid_pos, _rotation, index) in pipe_data.iter() {
+        let (x, y) = grid_pos;
+
+        // Check all 4 directions for neighboring pipes
+        let has_above = pipe_positions.contains_key(&(*x, y + 1));
+        let has_below = pipe_positions.contains_key(&(*x, y - 1));
+        let has_left = pipe_positions.contains_key(&(*x - 1, *y));
+        let has_right = pipe_positions.contains_key(&(*x + 1, *y));
+
+        let has_vertical = has_above || has_below;
+        let has_horizontal = has_left || has_right;
+
+        let texture_index = if has_vertical && has_horizontal {
+            // Has connections both vertically AND horizontally = T-junction (index 2)
+            2
+        } else if has_vertical && !has_horizontal {
+            // Only vertical connections, no horizontal = corner pipe (index 1)
+            1
+        } else {
+            // Only horizontal connections or no connections = straight pipe (index 0)
+            0
+        };
+
+        // Finally, update the sprite's texture index
+        if let Some((_, mut sprite, _)) = q_pipes.iter_mut().nth(*index) {
+            if let Some(ref mut atlas) = sprite.texture_atlas {
+                atlas.index = texture_index;
+            }
+        }
     }
 }

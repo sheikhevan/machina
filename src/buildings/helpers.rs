@@ -7,6 +7,14 @@ pub fn snap_to_grid(world_pos: Vec2, tile_size: f32) -> Vec2 {
     )
 }
 
+pub fn world_to_grid(world_pos: Vec3) -> (i32, i32) {
+    let tile_size = 32.0;
+    (
+        (world_pos.x / tile_size).round() as i32,
+        (world_pos.y / tile_size).round() as i32,
+    )
+}
+
 // Rotation stuff
 #[derive(Component, Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum BuildingRotation {
