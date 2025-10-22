@@ -252,7 +252,7 @@ fn place_oil_extractor(
             }
 
             // And despawn the preview
-            commands.entity(preview).despawn_children();
+            commands.entity(preview).despawn();
         }
 
         // Change state to exit placement mode
