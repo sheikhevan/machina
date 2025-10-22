@@ -221,57 +221,91 @@ fn update_pipe_connections(
     for (grid_pos, rotation, index) in pipe_data.iter() {
         let (x, y) = grid_pos;
 
-        // Check all 4 directions for neighboring pipes
-        let has_above = pipe_positions.contains_key(&(*x, y + 1));
-        let has_below = pipe_positions.contains_key(&(*x, y - 1));
-        let has_left = pipe_positions.contains_key(&(*x - 1, *y));
-        let has_right = pipe_positions.contains_key(&(*x + 1, *y));
+        // Helper functions to check if a neighbor is vertical or horizontal
+        let is_vertical = |pos: (i32, i32)| -> bool {
+            pipe_positions
+                .get(&pos)
+                .map(|(rot, _)| {
+                    rot.to_radians().abs() % std::f32::consts::PI > std::f32::consts::FRAC_PI_4
+                })
+                .unwrap_or(false)
+        };
 
+        let is_horizontal = |pos: (i32, i32)| -> bool {
+            pipe_positions
+                .get(&pos)
+                .map(|(rot, _)| {
+                    rot.to_radians().abs() % std::f32::consts::PI < std::f32::consts::FRAC_PI_4
+                })
+                .unwrap_or(false)
+        };
+
+        // Helper variables to check if current pipe is vertical or horizontal
+        let current_is_vertical =
+            rotation.to_radians().abs() % std::f32::consts::PI > std::f32::consts::FRAC_PI_4;
+        let current_is_horizontal =
+            rotation.to_radians().abs() % std::f32::consts::PI < std::f32::consts::FRAC_PI_4;
+
+        // Check all 4 directions for neighboring pipes
+        let has_above = pipe_positions.contains_key(&(*x, y + 1))
+            && (is_vertical((*x, y + 1)) || current_is_vertical);
+        let has_below = pipe_positions.contains_key(&(*x, y - 1))
+            && (is_vertical((*x, y - 1)) || current_is_vertical);
+        let has_left = pipe_positions.contains_key(&(*x - 1, *y))
+            && (is_horizontal((*x - 1, *y)) || current_is_horizontal);
+        let has_right = pipe_positions.contains_key(&(*x + 1, *y))
+            && (is_horizontal((*x + 1, *y)) || current_is_horizontal);
         let has_vertical = has_above || has_below;
         let has_horizontal = has_left || has_right;
 
-        let vertical_neighbor_is_vertical = if has_above {
-            if let Some((neighbor_rotation, _)) = pipe_positions.get(&(*x, y + 1)) {
-                neighbor_rotation.to_radians().abs() % std::f32::consts::PI
-                    > std::f32::consts::FRAC_PI_4
+        let vertical_neighbor_is_vertical =
+            (has_above && is_vertical((*x, y + 1))) || (has_below && is_vertical((*x, y - 1)));
+        let horizontal_neighbor_is_horizontal =
+            (has_left && is_horizontal((*x - 1, *y))) || (has_right && is_horizontal((*x + 1, *y)));
+
+        let (texture_index, rotation_angle) = if has_left
+            && has_right
+            && has_above
+            && has_below
+            && vertical_neighbor_is_vertical
+            && horizontal_neighbor_is_horizontal
+        {
+            (3, 0.0)
+        } else if has_left && has_right && has_vertical && vertical_neighbor_is_vertical {
+            // T-junction pipe (vertical connection)
+            let angle = if has_below && is_vertical((*x, y - 1)) {
+                std::f32::consts::PI // 180°
             } else {
-                false
-            }
-        } else if has_below {
-            if let Some((neighbor_rotation, _)) = pipe_positions.get(&(*x, y - 1)) {
-                neighbor_rotation.to_radians().abs() % std::f32::consts::PI
-                    > std::f32::consts::FRAC_PI_4
+                0.0 // 0°
+            };
+            (2, angle)
+        } else if has_above && has_below && has_horizontal && horizontal_neighbor_is_horizontal {
+            // T-junction pipe (horizontal connection)
+            let angle = if has_right && is_horizontal((*x + 1, *y)) {
+                std::f32::consts::FRAC_PI_2 // 90° - horizontal pipe to the right
             } else {
-                false
-            }
+                -std::f32::consts::FRAC_PI_2 // 270° - horizontal pipe to the left
+            };
+            (2, angle)
+        } else if has_vertical && has_horizontal {
+            // Corner pipe
+            let angle = if has_left && has_below {
+                std::f32::consts::FRAC_PI_2 // 90°
+            } else if has_right && has_below {
+                std::f32::consts::PI // 180°
+            } else if has_right && has_above {
+                -std::f32::consts::FRAC_PI_2 // 270°
+            } else if has_left && has_above {
+                0.0 // 0°
+            } else {
+                0.0
+            };
+            (1, angle)
         } else {
-            false
+            // Straight pipe
+            (0, rotation.to_radians())
         };
 
-        let (texture_index, rotation_angle) =
-            if has_left && has_right && has_above && has_below && vertical_neighbor_is_vertical {
-                (3, 0.0)
-            } else if has_left && has_right && has_vertical && vertical_neighbor_is_vertical {
-                // T-junction pipe
-                (2, 0.0)
-            } else if has_vertical && has_horizontal {
-                // Corner pipe
-                let angle = if has_left && has_below {
-                    std::f32::consts::FRAC_PI_2 // 90°
-                } else if has_right && has_below {
-                    std::f32::consts::PI // 180°
-                } else if has_right && has_above {
-                    -std::f32::consts::FRAC_PI_2 // 270°
-                } else if has_left && has_above {
-                    0.0 // 0°
-                } else {
-                    0.0
-                };
-                (1, angle)
-            } else {
-                // Straight pipe
-                (0, rotation.to_radians())
-            };
         // Finally, update the sprite's texture index
         if let Some((mut transform, mut sprite, _)) = q_pipes.iter_mut().nth(*index) {
             if let Some(ref mut atlas) = sprite.texture_atlas {
