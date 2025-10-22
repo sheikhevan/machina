@@ -52,10 +52,10 @@ fn setup_pipe(
 ) {
     let texture = asset_server.load("textures/pipe.png");
 
-    // Create texture atlas layout for 96x32 spritesheet with 3 frames of 32x32
+    // Create texture atlas layout for 128x32 spritesheet with 4 frames of 32x32
     let layout = TextureAtlasLayout::from_grid(
         UVec2::new(32, 32), // Size of each frame
-        3,                  // Number of columns
+        4,                  // Number of columns
         1,                  // Number of rows
         None,
         None,
@@ -249,7 +249,9 @@ fn update_pipe_connections(
         };
 
         let (texture_index, rotation_angle) =
-            if has_left && has_right && has_vertical && vertical_neighbor_is_vertical {
+            if has_left && has_right && has_above && has_below && vertical_neighbor_is_vertical {
+                (3, 0.0)
+            } else if has_left && has_right && has_vertical && vertical_neighbor_is_vertical {
                 // T-junction pipe
                 (2, 0.0)
             } else if has_vertical && has_horizontal {

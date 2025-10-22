@@ -51,7 +51,7 @@ fn debug_egui_menu(
 
         // Pipe
         ui.collapsing("Pipe", |ui| {
-            let uv = egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(0.333, 1.0));
+            let uv = egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(0.25, 1.0));
 
             let image = egui::Image::new(egui::load::SizedTexture::new(
                 pipe_tid,
