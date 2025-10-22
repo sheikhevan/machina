@@ -1,3 +1,4 @@
+use crate::buildings::helpers::DeleteMode;
 use bevy::picking::hover::PickingInteraction;
 use bevy::{
     picking::{
@@ -38,7 +39,12 @@ fn tile_picking(
     )>,
     q_tile: Query<&TileVisible>,
     mut output: MessageWriter<PointerHits>,
+    delete_mode: Res<DeleteMode>,
 ) {
+    if delete_mode.active {
+        return;
+    }
+
     for (p_id, p_loc) in q_pointers
         .iter()
         .filter_map(|(p_id, p_loc)| p_loc.location().map(|l| (p_id, l)))

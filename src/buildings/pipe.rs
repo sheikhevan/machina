@@ -1,4 +1,4 @@
-use crate::buildings::helpers::{BuildingRotation, snap_to_grid, world_to_grid};
+use crate::buildings::helpers::{Building, BuildingRotation, snap_to_grid, world_to_grid};
 use bevy::prelude::*;
 use std::collections::HashMap;
 
@@ -82,6 +82,7 @@ fn start_pipe_preview(
             .spawn((
                 PipePreview,
                 Pipe,
+                Pickable::default(),
                 BuildingRotation::default(),
                 Sprite {
                     image: pipe_asset.texture.clone(),
@@ -177,8 +178,10 @@ fn place_pipe(
             if let Ok((preview_transform, rotation)) = q_preview.get(preview) {
                 // Now we spawn the basic conveyor
                 commands.spawn((
+                    Building,
                     Pipe,
                     *rotation,
+                    Pickable::default(),
                     Sprite {
                         image: pipe_asset.texture.clone(),
                         texture_atlas: Some(TextureAtlas {

@@ -1,4 +1,4 @@
-use crate::buildings::helpers::{BuildingRotation, snap_to_grid};
+use crate::buildings::helpers::{Building, BuildingRotation, snap_to_grid};
 use bevy::prelude::*;
 
 pub struct OilExtractorPlugin;
@@ -223,7 +223,9 @@ fn place_oil_extractor(
                 // Now we spawn the basic conveyor
                 commands
                     .spawn((
+                        Building,
                         OilExtractor,
+                        Pickable::default(),
                         *rotation,
                         Sprite {
                             image: oil_extractor_asset.texture.clone(),

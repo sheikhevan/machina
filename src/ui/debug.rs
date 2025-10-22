@@ -1,13 +1,17 @@
 use bevy::prelude::*;
 use bevy_egui::{EguiContexts, EguiPrimaryContextPass, egui};
 
+use crate::buildings::helpers::{DeleteMode, delete_clicked_building};
+
 use crate::buildings::{oil_extractor, pipe};
 
 pub struct DebugEguiPlugin;
 
 impl Plugin for DebugEguiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_building_images)
+        app.init_resource::<DeleteMode>()
+            .add_systems(Startup, setup_building_images)
+            .add_systems(Update, delete_clicked_building)
             .add_systems(EguiPrimaryContextPass, debug_egui_menu);
     }
 }
@@ -29,6 +33,7 @@ fn debug_egui_menu(
     mut contexts: EguiContexts,
     building_images: Res<BuildingImages>,
     time: Res<Time>,
+    mut delete_mode: ResMut<DeleteMode>,
     mut spawn_pipe_writer: MessageWriter<pipe::SpawnPipeMsg>,
     mut spawn_oil_extractor_writer: MessageWriter<oil_extractor::SpawnOilExtractorMsg>,
 ) -> Result {
@@ -43,6 +48,8 @@ fn debug_egui_menu(
     ));
 
     egui::Window::new("DEBUG").show(contexts.ctx_mut()?, |ui| {
+        ui.label("Tools");
+        ui.checkbox(&mut delete_mode.active, "Delete Mode");
         ui.label("Buildings");
 
         // I really struggled trying to make this work with a list but I really couldn't so you get
