@@ -1,22 +1,22 @@
 use crate::buildings::helpers::{Building, BuildingRotation, snap_to_grid};
 use bevy::prelude::*;
 
-pub struct OilExtractorPlugin;
+pub struct OilRefineryPlugin;
 
-impl Plugin for OilExtractorPlugin {
+impl Plugin for OilRefineryPlugin {
     fn build(&self, app: &mut App) {
-        app.add_message::<SpawnOilExtractorMsg>()
-            .init_resource::<OilExtractorState>()
-            .init_resource::<OilExtractorAnimTimer>()
-            .add_systems(Startup, setup_oil_extractor)
+        app.add_message::<SpawnOilRefineryMsg>()
+            .init_resource::<OilRefineryState>()
+            .init_resource::<OilRefineryAnimTimer>()
+            .add_systems(Startup, setup_oil_refinery)
             .add_systems(
                 Update,
                 (
-                    start_oil_extractor_preview,
-                    update_oil_extractor_preview,
-                    rotate_oil_extractor_preview,
-                    place_oil_extractor,
-                    animate_oil_extractors,
+                    start_oil_refinery_preview,
+                    update_oil_refinery_preview,
+                    rotate_oil_refinery_preview,
+                    place_oil_refinery,
+                    animate_oil_refineries,
                 )
                     .chain(),
             );
@@ -24,29 +24,29 @@ impl Plugin for OilExtractorPlugin {
 }
 
 #[derive(Message)]
-pub struct SpawnOilExtractorMsg;
+pub struct SpawnOilRefineryMsg;
 
 #[derive(Resource)]
-pub struct OilExtractorAsset {
+pub struct OilRefineryAsset {
     pub texture: Handle<Image>,
     pub atlas_layout: Handle<TextureAtlasLayout>,
     pub rotation_indicator: Handle<Image>,
 }
 
 #[derive(Resource, Default)]
-pub struct OilExtractorState {
+pub struct OilRefineryState {
     pub placing: bool,
     pub preview: Option<Entity>,
     pub rotation: BuildingRotation,
 }
 
 #[derive(Resource)]
-struct OilExtractorAnimTimer {
+struct OilRefineryAnimTimer {
     timer: Timer,
     current_frame: usize,
 }
 
-impl Default for OilExtractorAnimTimer {
+impl Default for OilRefineryAnimTimer {
     fn default() -> Self {
         Self {
             timer: Timer::from_seconds(0.1, TimerMode::Repeating),
@@ -56,25 +56,25 @@ impl Default for OilExtractorAnimTimer {
 }
 
 #[derive(Component)]
-pub struct OilExtractor;
+pub struct OilRefinery;
 
 #[derive(Component)]
-pub struct OilExtractorPreview;
+pub struct OilRefineryPreview;
 
 #[derive(Component)]
 pub struct RotationIndicator;
 
-fn setup_oil_extractor(
+fn setup_oil_refinery(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    let texture = asset_server.load("textures/oil_extractor.png");
+    let texture = asset_server.load("textures/oil_refinery.png");
     let rotation_indicator = asset_server.load("textures/rotation_indicator.png");
 
-    // Create texture atlas layout for 160x32 spritesheet with 5 frames of 32x32
+    // Create texture atlas layout for 64x64 spritesheet with 5 frames of 64x64
     let layout = TextureAtlasLayout::from_grid(
-        UVec2::new(32, 32), // Size of each frame
+        UVec2::new(64, 64), // Size of each frame
         5,                  // Number of columns
         1,                  // Number of rows
         None,
@@ -82,18 +82,18 @@ fn setup_oil_extractor(
     );
     let atlas_layout = texture_atlases.add(layout);
 
-    commands.insert_resource(OilExtractorAsset {
+    commands.insert_resource(OilRefineryAsset {
         texture,
         atlas_layout,
         rotation_indicator,
     });
 }
 
-fn start_oil_extractor_preview(
+fn start_oil_refinery_preview(
     mut commands: Commands,
-    mut msg_reader: MessageReader<SpawnOilExtractorMsg>,
-    mut state: ResMut<OilExtractorState>,
-    oil_extractor_asset: Res<OilExtractorAsset>,
+    mut msg_reader: MessageReader<SpawnOilRefineryMsg>,
+    mut state: ResMut<OilRefineryState>,
+    oil_refinery_asset: Res<OilRefineryAsset>,
 ) {
     for _ in msg_reader.read() {
         state.placing = true;
@@ -101,13 +101,13 @@ fn start_oil_extractor_preview(
 
         let preview = commands
             .spawn((
-                OilExtractorPreview,
-                OilExtractor,
+                OilRefineryPreview,
+                OilRefinery,
                 BuildingRotation::default(),
                 Sprite {
-                    image: oil_extractor_asset.texture.clone(),
+                    image: oil_refinery_asset.texture.clone(),
                     texture_atlas: Some(TextureAtlas {
-                        layout: oil_extractor_asset.atlas_layout.clone(),
+                        layout: oil_refinery_asset.atlas_layout.clone(),
                         index: 0,
                     }),
                     color: Color::srgba(1.0, 1.0, 1.0, 0.7), // Last value for preview opacity
@@ -119,7 +119,7 @@ fn start_oil_extractor_preview(
                 parent.spawn((
                     RotationIndicator,
                     Sprite {
-                        image: oil_extractor_asset.rotation_indicator.clone(),
+                        image: oil_refinery_asset.rotation_indicator.clone(),
                         ..default()
                     },
                     Transform::from_xyz(8.0, 0.0, 1.0).with_rotation(Quat::from_rotation_z(0.0)),
@@ -131,11 +131,11 @@ fn start_oil_extractor_preview(
     }
 }
 
-fn update_oil_extractor_preview(
-    state: Res<OilExtractorState>,
+fn update_oil_refinery_preview(
+    state: Res<OilRefineryState>,
     q_windows: Query<&Window>,
     q_camera: Query<(&Camera, &GlobalTransform)>,
-    mut q_preview: Query<&mut Transform, With<OilExtractorPreview>>,
+    mut q_preview: Query<&mut Transform, With<OilRefineryPreview>>,
 ) {
     if !state.placing {
         return;
@@ -158,7 +158,7 @@ fn update_oil_extractor_preview(
         return;
     };
 
-    let snapped_pos = snap_to_grid(world_pos, 32.0);
+    let snapped_pos = snap_to_grid(world_pos, 64.0);
 
     // Update the preview position
     if let Some(preview) = state.preview {
@@ -168,11 +168,11 @@ fn update_oil_extractor_preview(
     }
 }
 
-fn rotate_oil_extractor_preview(
+fn rotate_oil_refinery_preview(
     keyboard: Res<ButtonInput<KeyCode>>,
-    mut state: ResMut<OilExtractorState>,
-    q_preview: Query<&Children, With<OilExtractorPreview>>,
-    mut q_preview_rotation: Query<&mut BuildingRotation, With<OilExtractorPreview>>,
+    mut state: ResMut<OilRefineryState>,
+    q_preview: Query<&Children, With<OilRefineryPreview>>,
+    mut q_preview_rotation: Query<&mut BuildingRotation, With<OilRefineryPreview>>,
     mut q_indicator: Query<&mut Transform, With<RotationIndicator>>,
 ) {
     if !state.placing {
@@ -193,7 +193,7 @@ fn rotate_oil_extractor_preview(
             if let Ok(children) = q_preview.get(preview) {
                 for child in children.iter() {
                     if let Ok(mut indicator_transform) = q_indicator.get_mut(child) {
-                        let offset = state.rotation.to_direction() * 8.0;
+                        let offset = state.rotation.to_direction() * 16.0;
                         indicator_transform.translation = offset.extend(1.0);
 
                         indicator_transform.rotation =
@@ -205,12 +205,12 @@ fn rotate_oil_extractor_preview(
     }
 }
 
-fn place_oil_extractor(
+fn place_oil_refinery(
     mut commands: Commands,
     mouse_button: Res<ButtonInput<MouseButton>>,
-    mut state: ResMut<OilExtractorState>,
-    oil_extractor_asset: Res<OilExtractorAsset>,
-    q_preview: Query<(&Transform, &BuildingRotation), With<OilExtractorPreview>>,
+    mut state: ResMut<OilRefineryState>,
+    oil_refinery_asset: Res<OilRefineryAsset>,
+    q_preview: Query<(&Transform, &BuildingRotation), With<OilRefineryPreview>>,
 ) {
     if !state.placing {
         return;
@@ -220,17 +220,17 @@ fn place_oil_extractor(
         // Get the preview position
         if let Some(preview) = state.preview {
             if let Ok((preview_transform, rotation)) = q_preview.get(preview) {
-                // Now we spawn the oil extractor
+                // Now we spawn the oil refinery
                 commands
                     .spawn((
                         Building,
-                        OilExtractor,
+                        OilRefinery,
                         Pickable::default(),
                         *rotation,
                         Sprite {
-                            image: oil_extractor_asset.texture.clone(),
+                            image: oil_refinery_asset.texture.clone(),
                             texture_atlas: Some(TextureAtlas {
-                                layout: oil_extractor_asset.atlas_layout.clone(),
+                                layout: oil_refinery_asset.atlas_layout.clone(),
                                 index: 0,
                             }),
                             ..default()
@@ -242,7 +242,7 @@ fn place_oil_extractor(
                         parent.spawn((
                             RotationIndicator,
                             Sprite {
-                                image: oil_extractor_asset.rotation_indicator.clone(),
+                                image: oil_refinery_asset.rotation_indicator.clone(),
                                 ..default()
                             },
                             Transform::from_translation(offset.extend(1.0))
@@ -261,10 +261,10 @@ fn place_oil_extractor(
     }
 }
 
-fn animate_oil_extractors(
+fn animate_oil_refineries(
     time: Res<Time>,
-    mut q_sprite: Query<&mut Sprite, With<OilExtractor>>,
-    mut anim_timer: ResMut<OilExtractorAnimTimer>,
+    mut q_sprite: Query<&mut Sprite, With<OilRefinery>>,
+    mut anim_timer: ResMut<OilRefineryAnimTimer>,
 ) {
     anim_timer.timer.tick(time.delta());
 

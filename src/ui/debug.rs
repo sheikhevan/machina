@@ -3,7 +3,7 @@ use bevy_egui::{EguiContexts, EguiPrimaryContextPass, egui};
 
 use crate::buildings::helpers::{DeleteMode, delete_clicked_building};
 
-use crate::buildings::{oil_container, oil_extractor, pipe};
+use crate::buildings::{oil_container, oil_extractor, oil_refinery, pipe};
 
 pub struct DebugEguiPlugin;
 
@@ -21,6 +21,7 @@ struct BuildingImages {
     pipe: Handle<Image>,
     oil_extractor: Handle<Image>,
     oil_containers: Handle<Image>,
+    oil_refinery: Handle<Image>,
 }
 
 fn setup_building_images(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -28,6 +29,7 @@ fn setup_building_images(mut commands: Commands, asset_server: Res<AssetServer>)
         pipe: asset_server.load("textures/pipe.png"),
         oil_extractor: asset_server.load("textures/oil_extractor.png"),
         oil_containers: asset_server.load("textures/oil_container.png"),
+        oil_refinery: asset_server.load("textures/oil_refinery.png"),
     });
 }
 
@@ -41,6 +43,7 @@ fn debug_egui_menu(
     mut spawn_small_oil_container_writer: MessageWriter<oil_container::SpawnSmallOilContainerMsg>,
     mut spawn_medium_oil_container_writer: MessageWriter<oil_container::SpawnMediumOilContainerMsg>,
     mut spawn_large_oil_container_writer: MessageWriter<oil_container::SpawnLargeOilContainerMsg>,
+    mut spawn_oil_refinery_writer: MessageWriter<oil_refinery::SpawnOilRefineryMsg>,
 ) -> Result {
     let fps = 10.0;
 
@@ -54,6 +57,10 @@ fn debug_egui_menu(
 
     let oil_containers_tid = contexts.add_image(bevy_egui::EguiTextureHandle::Strong(
         building_images.oil_containers.clone(),
+    ));
+
+    let oil_refinery_tid = contexts.add_image(bevy_egui::EguiTextureHandle::Strong(
+        building_images.oil_refinery.clone(),
     ));
 
     egui::Window::new("DEBUG").show(contexts.ctx_mut()?, |ui| {
@@ -155,6 +162,30 @@ fn debug_egui_menu(
 
             if ui.button("Spawn").clicked() {
                 spawn_large_oil_container_writer.write(oil_container::SpawnLargeOilContainerMsg);
+            }
+        });
+
+        // Oil refinery
+        ui.collapsing("Oil Refinery", |ui| {
+            let num_frames = 5;
+
+            let frame_index = ((time.elapsed_secs() * fps) as usize) % num_frames;
+
+            let u_min = (frame_index as f32 * 64.0) / 320.0;
+            let u_max = ((frame_index + 1) as f32 * 64.0) / 320.0;
+
+            let uv = egui::Rect::from_min_max(egui::pos2(u_min, 0.0), egui::pos2(u_max, 1.0));
+
+            let image = egui::Image::new(egui::load::SizedTexture::new(
+                oil_refinery_tid,
+                egui::vec2(64.0, 64.0),
+            ))
+            .uv(uv);
+
+            ui.add(image);
+
+            if ui.button("Spawn").clicked() {
+                spawn_oil_refinery_writer.write(oil_refinery::SpawnOilRefineryMsg);
             }
         });
     });

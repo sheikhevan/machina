@@ -1,5 +1,6 @@
 use crate::buildings::oil_container::OilContainerPlugin;
 use crate::buildings::oil_extractor::OilExtractorPlugin;
+use crate::buildings::oil_refinery::OilRefineryPlugin;
 use crate::buildings::pipe::PipePlugin;
 use crate::tiles::picking::TilemapBackendPlugin;
 use crate::ui::debug::DebugEguiPlugin;
@@ -57,7 +58,12 @@ fn main() {
         )
         .add_plugins((TilemapPlugin, TilemapBackendPlugin))
         .add_plugins((EguiPlugin::default(), DebugEguiPlugin))
-        .add_plugins((PipePlugin, OilExtractorPlugin, OilContainerPlugin))
+        .add_plugins((
+            PipePlugin,
+            OilExtractorPlugin,
+            OilContainerPlugin,
+            OilRefineryPlugin,
+        ))
         .add_systems(Startup, spawn_camera)
         .add_systems(Update, camera_controls)
         .add_systems(Update, animate_sprite)
