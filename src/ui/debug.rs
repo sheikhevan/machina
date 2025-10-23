@@ -3,7 +3,7 @@ use bevy_egui::{EguiContexts, EguiPrimaryContextPass, egui};
 
 use crate::buildings::helpers::{DeleteMode, delete_clicked_building};
 
-use crate::buildings::{oil_extractor, pipe};
+use crate::buildings::{oil_container, oil_extractor, pipe};
 
 pub struct DebugEguiPlugin;
 
@@ -20,12 +20,14 @@ impl Plugin for DebugEguiPlugin {
 struct BuildingImages {
     pipe: Handle<Image>,
     oil_extractor: Handle<Image>,
+    oil_containers: Handle<Image>,
 }
 
 fn setup_building_images(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(BuildingImages {
         pipe: asset_server.load("textures/pipe.png"),
         oil_extractor: asset_server.load("textures/oil_extractor.png"),
+        oil_containers: asset_server.load("textures/oil_container.png"),
     });
 }
 
@@ -36,6 +38,9 @@ fn debug_egui_menu(
     mut delete_mode: ResMut<DeleteMode>,
     mut spawn_pipe_writer: MessageWriter<pipe::SpawnPipeMsg>,
     mut spawn_oil_extractor_writer: MessageWriter<oil_extractor::SpawnOilExtractorMsg>,
+    mut spawn_small_oil_container_writer: MessageWriter<oil_container::SpawnSmallOilContainerMsg>,
+    mut spawn_medium_oil_container_writer: MessageWriter<oil_container::SpawnMediumOilContainerMsg>,
+    mut spawn_large_oil_container_writer: MessageWriter<oil_container::SpawnLargeOilContainerMsg>,
 ) -> Result {
     let fps = 10.0;
 
@@ -47,14 +52,14 @@ fn debug_egui_menu(
         building_images.oil_extractor.clone(),
     ));
 
+    let oil_containers_tid = contexts.add_image(bevy_egui::EguiTextureHandle::Strong(
+        building_images.oil_containers.clone(),
+    ));
+
     egui::Window::new("DEBUG").show(contexts.ctx_mut()?, |ui| {
         ui.label("Tools");
         ui.checkbox(&mut delete_mode.active, "Delete Mode");
         ui.label("Buildings");
-
-        // I really struggled trying to make this work with a list but I really couldn't so you get
-        // to see me just put magic numbers everywhere and do it all manually. Yes I am a shit
-        // coder thank you for asking.
 
         // Pipe
         ui.collapsing("Pipe", |ui| {
@@ -96,6 +101,63 @@ fn debug_egui_menu(
                 spawn_oil_extractor_writer.write(oil_extractor::SpawnOilExtractorMsg);
             }
         });
+
+        // Oil containers
+        ui.collapsing("Oil Containers", |ui| {
+            // Small container
+            ui.label("Small");
+            let uv_small = egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(0.333, 1.0));
+
+            let image_small = egui::Image::new(egui::load::SizedTexture::new(
+                oil_containers_tid,
+                egui::vec2(32.0, 32.0),
+            ))
+            .uv(uv_small);
+
+            ui.add(image_small);
+
+            if ui.button("Spawn").clicked() {
+                spawn_small_oil_container_writer.write(oil_container::SpawnSmallOilContainerMsg);
+            }
+
+            ui.separator();
+
+            // Medium container
+            ui.label("Medium");
+            let uv_medium =
+                egui::Rect::from_min_max(egui::pos2(0.333, 0.0), egui::pos2(0.666, 1.0));
+
+            let image_medium = egui::Image::new(egui::load::SizedTexture::new(
+                oil_containers_tid,
+                egui::vec2(32.0, 32.0),
+            ))
+            .uv(uv_medium);
+
+            ui.add(image_medium);
+
+            if ui.button("Spawn").clicked() {
+                spawn_medium_oil_container_writer.write(oil_container::SpawnMediumOilContainerMsg);
+            }
+
+            ui.separator();
+
+            // Large container
+            ui.label("Large");
+            let uv_large = egui::Rect::from_min_max(egui::pos2(0.666, 0.0), egui::pos2(1.0, 1.0));
+
+            let image_large = egui::Image::new(egui::load::SizedTexture::new(
+                oil_containers_tid,
+                egui::vec2(32.0, 32.0),
+            ))
+            .uv(uv_large);
+
+            ui.add(image_large);
+
+            if ui.button("Spawn").clicked() {
+                spawn_large_oil_container_writer.write(oil_container::SpawnLargeOilContainerMsg);
+            }
+        });
     });
+
     Ok(())
 }
