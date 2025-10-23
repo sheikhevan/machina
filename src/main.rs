@@ -83,32 +83,8 @@ fn animate_sprite(
     }
 }
 
-fn spawn_camera(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
-) {
+fn spawn_camera(mut commands: Commands) {
     commands.spawn((Camera2d, Camera::default()));
-
-    // This is temporary to show the conveyor belt sprite is working
-    let texture = asset_server.load("textures/basic_conveyor.png");
-    let layout = TextureAtlasLayout::from_grid(UVec2::splat(32), 5, 1, None, None);
-    let texture_atlas_layout = texture_atlas_layouts.add(layout);
-
-    let animation_indices = AnimationIndices { first: 0, last: 4 };
-
-    commands.spawn((
-        Sprite::from_atlas_image(
-            texture,
-            TextureAtlas {
-                layout: texture_atlas_layout,
-                index: animation_indices.first,
-            },
-        ),
-        Transform::from_scale(Vec3::splat(6.0)),
-        animation_indices,
-        AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
-    ));
 }
 
 fn camera_controls(
