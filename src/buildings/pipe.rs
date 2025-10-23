@@ -285,9 +285,9 @@ fn update_pipe_connections(
         } else if has_above && has_below && has_horizontal && horizontal_neighbor_is_horizontal {
             // T-junction pipe (horizontal connection)
             let angle = if has_right && is_horizontal((*x + 1, *y)) {
-                std::f32::consts::FRAC_PI_2 // 90° - horizontal pipe to the right
+                -std::f32::consts::FRAC_PI_2 // 90° - horizontal pipe to the right
             } else {
-                -std::f32::consts::FRAC_PI_2 // 270° - horizontal pipe to the left
+                std::f32::consts::FRAC_PI_2 // 270° - horizontal pipe to the left
             };
             (2, angle)
         } else if has_vertical && has_horizontal {
